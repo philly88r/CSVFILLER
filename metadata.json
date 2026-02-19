@@ -1,0 +1,8 @@
+{
+  "name": "AgentFlow CSV 2025",
+  "description": "Multi-agent autonomous research engine that transforms blank CSV templates into high-fidelity grounded datasets using real 2025 web data.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
