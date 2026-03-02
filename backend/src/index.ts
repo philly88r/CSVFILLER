@@ -64,8 +64,8 @@ app.post('/v1/process', async (c) => {
        Apply these instructions: "${instructions}". 
        Return ONLY the updated JSON array of objects. Do not include markdown.`
 
-  // Call Gemini
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${c.env.GEMINI_API_KEY}`
+  // Updated to Gemini 3 Flash Preview (March 2026 Model)
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${c.env.GEMINI_API_KEY}`
   
   const response = await fetch(geminiUrl, {
     method: 'POST',
