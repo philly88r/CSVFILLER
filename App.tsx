@@ -36,8 +36,7 @@ import {
   SignedIn, 
   SignedOut, 
   SignInButton, 
-  UserButton, 
-  useUser 
+  UserButton 
 } from "@clerk/clerk-react";
 
 interface CSVData {
@@ -46,7 +45,6 @@ interface CSVData {
 }
 
 const App: React.FC = () => {
-  const { user } = useUser();
   const [csvData, setCsvData] = useState<CSVData | null>(null);
   const [instructions, setInstructions] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -73,10 +71,15 @@ const App: React.FC = () => {
   };
 
   const runProcessor = async () => {
-    if (!csvData || !GEMINI_API_KEY) {
-      addLog("Missing CSV or API Key");
+    if (!csvData) {
+      addLog("Please upload a CSV first.");
       return;
     }
+    if (!GEMINI_API_KEY) {
+      addLog("ERROR: VITE_GEMINI_API_KEY is missing. Add it to Netlify/Env.");
+      return;
+    }
+    
     setIsProcessing(true);
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -88,7 +91,6 @@ const App: React.FC = () => {
         const result = await model.generateContent(prompt);
         const text = result.response.text();
         
-        // CRITICAL FIX: Ensure the generated text is actually saved to the row object
         updatedRows[i] = { ...updatedRows[i], Generated_Content: text, Status: "Verified 100%", Export_Ready: "YES" };
         
         setProgress(Math.round(((i + 1) / updatedRows.length) * 100));
@@ -104,7 +106,6 @@ const App: React.FC = () => {
 
   const exportCsv = () => {
     if (!csvData) return;
-    // CRITICAL FIX: Ensure we are exporting the FULL rows including the new 'Generated_Content' column
     const csv = Papa.unparse(csvData.rows);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -119,61 +120,101 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto font-sans">
-      <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Sparkles className="text-blue-500" /> CSVFILLER AI
-        </h1>
-        <UserButton />
-      </header>
-
-      <div className="grid gap-6">
-        <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Upload size={20} /> 1. Upload Source
-          </h2>
-          <input type="file" accept=".csv" onChange={handleFileUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-        </section>
-
-        <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Terminal size={20} /> 2. AI Instructions
-          </h2>
-          <textarea 
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            placeholder="e.g. Write a 500-word SEO description for this wedding venue location..."
-            className="w-full h-32 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </section>
-
-        <div className="flex gap-4">
-          <button 
-            onClick={runProcessor}
-            disabled={isProcessing || !csvData}
-            className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50"
-          >
-            {isProcessing ? <Loader2 className="animate-spin" /> : <Play size={20} />} Run AI Processor
-          </button>
-          
-          <button 
-            onClick={exportCsv}
-            disabled={isProcessing || !csvData}
-            className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-50"
-          >
-            <Download size={20} /> Export Full Results
-          </button>
-        </div>
-
-        {isProcessing && (
-          <div className="w-full bg-gray-200 rounded-full h-4">
-            <div className="bg-blue-600 h-4 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+    <div className="min-h-screen bg-gray-50 p-8 font-sans">
+      <div className="max-w-4xl mx-auto">
+        <header className="flex justify-between items-center mb-12">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-lg">
+              <Sparkles className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">CSVFILLER AI</h1>
+              <p className="text-sm text-gray-500">Programmatic SEO Content Engine</p>
+            </div>
           </div>
-        )}
+          <div className="flex items-center gap-4">
+             {/* Conditionally render Clerk buttons if Clerk is present */}
+             <SignedIn><UserButton /></SignedIn>
+             <SignedOut><SignInButton /></SignedOut>
+          </div>
+        </header>
 
-        <section className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs h-48 overflow-y-auto">
-          {logs.map((log, i) => <div key={i}>{log}</div>)}
-        </section>
+        <div className="grid gap-8">
+          {!GEMINI_API_KEY && (
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
+              <AlertCircle className="text-amber-500" />
+              <p className="text-sm font-medium">Gemini API Key missing. Please add <strong>VITE_GEMINI_API_KEY</strong> to your environment variables.</p>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Upload size={16} /> 1. Upload Source
+              </h2>
+              <div className="border-2 border-dashed border-gray-100 rounded-xl p-8 text-center hover:border-blue-200 transition-colors">
+                <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" id="file-upload" />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <FileSpreadsheet className="mx-auto text-gray-300 mb-3" size={32} />
+                  <span className="text-sm text-gray-600 font-medium">Click to upload CSV</span>
+                </label>
+                {csvData && (
+                  <div className="mt-3 flex items-center justify-center gap-2 text-green-600 text-xs font-bold">
+                    <CheckCircle2 size={14} /> {csvData.rows.length} rows loaded
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Terminal size={16} /> 2. AI Instructions
+              </h2>
+              <textarea 
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="e.g. For each row, write a 200-word wedding vendor description focusing on their location..."
+                className="w-full h-32 p-4 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-700 placeholder-gray-400"
+              />
+            </section>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button 
+              onClick={runProcessor}
+              disabled={isProcessing || !csvData}
+              className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-200 transition-all hover:scale-[1.02]"
+            >
+              {isProcessing ? <Loader2 className="animate-spin" /> : <Zap size={20} />} 
+              {isProcessing ? `Processing (${progress}%)` : "Run AI Engine"}
+            </button>
+            
+            <button 
+              onClick={exportCsv}
+              disabled={isProcessing || !csvData}
+              className="flex-1 bg-white text-gray-900 border border-gray-200 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50 disabled:opacity-50 transition-all"
+            >
+              <Download size={20} className="text-gray-400" /> Export Full Dataset
+            </button>
+          </div>
+
+          <section className="bg-gray-900 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 italic">
+                <Activity size={14} /> System_Terminal.log
+              </h3>
+            </div>
+            <div className="h-40 overflow-y-auto font-mono text-[10px] space-y-1">
+              {logs.length === 0 && <div className="text-gray-700 italic">// Awaiting initialization...</div>}
+              {logs.map((log, i) => (
+                <div key={i} className="text-green-400 flex gap-3">
+                  <span className="text-gray-700">➜</span>
+                  <span>{log}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
