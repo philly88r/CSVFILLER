@@ -3,6 +3,9 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "VITE_GEMINI_API_KEY"
+
 # Single Page Application (SPA) redirects
 # Ensures React Router handles all routes correctly
 [[redirects]]
