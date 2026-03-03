@@ -56,8 +56,12 @@ const App: React.FC = () => {
           <span className="font-bold text-xl tracking-tight text-white">AgentFlow <span className="text-indigo-400">CSV</span></span>
         </div>
         <div className="flex items-center gap-4">
-          <SignedIn><UserButton /></SignedIn>
-          <SignedOut><SignInButton mode="modal" /></SignedOut>
+          {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY && (
+            <>
+              <SignedIn><UserButton /></SignedIn>
+              <SignedOut><SignInButton mode="modal" /></SignedOut>
+            </>
+          )}
         </div>
       </nav>
 
