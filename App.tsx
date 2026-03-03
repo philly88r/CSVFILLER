@@ -134,8 +134,12 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-4">
              {/* Conditionally render Clerk buttons if Clerk is present */}
-             <SignedIn><UserButton /></SignedIn>
-             <SignedOut><SignInButton /></SignedOut>
+             {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY && (
+               <>
+                 <SignedIn><UserButton /></SignedIn>
+                 <SignedOut><SignInButton /></SignedOut>
+               </>
+             )}
           </div>
         </header>
 
